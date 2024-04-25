@@ -1,0 +1,56 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+void minimum(int arr[], int n){
+
+    int minval = INT_MAX;
+
+    #pragma omp parallel for reduction(min : minval)
+    for(int i=0; i<n; i++){
+        if(arr[i] < minval){
+            minval = arr[i];
+        }
+    }
+
+    cout<<"min "<<minval<<endl;
+}
+
+void maximum(int arr[], int n){
+
+    int maxval = INT_MIN;
+
+    #pragma omp parallel for reduction(max : maxval)
+    for(int i=0; i<n; i++){
+        if(arr[i] > maxval){
+            maxval = arr[i];
+        }
+    }
+
+    cout<<"max "<<maxval<<endl;
+}
+
+void average(int arr[], int n){
+
+    float avg = 0;
+    int sum = 0;
+
+    #pragma omp parallel for reduction(+ : sum)
+    for(int i=0; i<n; i++){
+        sum += arr[i];
+    }
+
+    avg = sum / n;
+    cout<<"avg "<<avg<<endl;
+}
+
+int main(){
+
+    int n = 500;
+    int *arr = new int[n];
+
+    for(int i=0; i<n; i++){
+        arr[i] = rand()%100;
+    }
+
+
+}

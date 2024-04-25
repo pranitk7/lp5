@@ -1,0 +1,78 @@
+import pandas as pd
+data = pd.read_csv("IMDB Dataset.csv")
+
+imdb_data['sentiment'].mask(imdb_data['sentiment'] == 'positive', 1, inplace=True)
+imdb_data['sentiment'].mask(imdb_data['sentiment'] == 'negative', 0, inplace=True)
+# Get the reviews and the labels
+all_reviews = list(imdb_data['review'])
+labels = np.asarray(imdb_data['sentiment'])
+
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+# cutoff reviews after 200 words
+maxlen = 200
+training_samples = 40000
+validation_samples = 5000
+testing_samples = 5000
+# consider the top 100000 words in the dataset
+max_words = 100000
+# tokenize each review in the dataset
+
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+tokenizer = Tokenizer(num_words=max_words)
+tokenizer.fit_on_texts(all_reviews)
+sequences = tokenizer.texts_to_sequences(all_reviews)
+
+data = pad_sequences(sequences, maxlen=maxlen)
+
+
+indices = np.arange(data.shape[0])
+np.random.shuffle(indices)
+data = data[indices]
+labels = labels[indices]
+
+
+# Splitting the data set to training and validation datasets
+x_train = data[: training_samples]
+y_train = labels[: training_samples]
+x_val = data[training_samples : training_samples + validation_samples]
+y_val = labels[training_samples : training_samples + validation_samples]
+x_test = data[training_samples + validation_samples: training_samples + validation_samples + testing_samples]
+y_test = labels[training_samples + validation_samples: training_samples + validation_samples + testing_samples]
+
+x_train = np.asarray(x_train).astype(int)
+y_train = np.asarray(y_train).astype(int)
+x_val = np.asarray(x_val).astype(int)
+y_val = np.asarray(y_val).astype(int)
+x_test = np.asarray(x_test).astype(int)
+y_test = np.asarray(y_test).astype(int)
+
+embedding_dim = 10
+simple_model = tf.keras.models.Sequential([
+    tf.keras.layers.Embedding(max_words, embedding_dim),
+    tf.keras.layers.GlobalAveragePooling1D(),
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+simple_model.compile(loss='binary_crossentropy',
+                     optimizer='adam',
+                     metrics=['accuracy'])
+
+simple_model_history = simple_model.fit(x_train, y_train,
+                                        validation_data=(x_val, y_val),
+                                        epochs=2,
+                                        batch_size=36)  # You may want to specify batch_size
+
+y_predict = simple_model.predict(x_test)
+y_predict = (y_predict > 0.5).astype(int)
+
+from sklearn.metrics import classification_report, confusion_matrix
+class_names = ["Positive","Negative"]
+# print(classification_report(y_test, y_predict, target_names=class_names))
+
+print(confusion_matrix(y_test, y_predict))
