@@ -1,0 +1,155 @@
+!pip install git+https://github.com/afnan47/cuda.git
+
+%load_ext nvcc_plugin
+
+ADDITION 
+
+%%cu
+
+#include<iostream>
+using namespace std;
+
+__global__ void add(int *X, int *Y, int *Z, int size){
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(tid < size){
+        Z[tid] = X[tid] + Y[tid];
+    }
+}
+
+void initialize(int *vector, int size){
+
+    for(int i=0; i<size; i++){
+        vector[i] = rand()%10;
+    }
+}
+
+void print(int *vector, int size){
+
+    for(int i=0; i<size; i++){
+        cout<<vector[i]<<" ";
+    }
+}
+
+int main(){
+
+    int N = 4;
+    int * A,* B,* C;
+    int vectorSize = N;
+    size_t vectorBytes = vectorSize*sizeof(int);
+
+    A = new int[vectorSize];
+    B = new int[vectorSize];
+    C = new int[vectorSize];
+
+    initialize(A, vectorSize);
+    initialize(B, vectorSize);
+
+
+    int * X,* Y,* Z;
+    cudaMalloc(&X, vectorBytes);
+    cudaMalloc(&Y, vectorBytes);
+    cudaMalloc(&Z, vectorBytes);
+
+    cudaMemcpy(X, A, vectorBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(Y, B, vectorBytes, cudaMemcpyHostToDevice);
+
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+    add<<<blocksPerGrid,threadsPerBlock>>>(X, Y, Z, N);
+
+    cudaMemcpy(C, Z, vectorBytes, cudaMemcpyDeviceToHost);
+
+    cout<<"Vector A ";
+    cout<<endl;
+    print(A, N);
+    cout<<"Vector B ";
+    cout<<endl;
+    print(B, N);
+    cout<<"Addition ";
+    print(C, N);
+
+
+}
+
+
+MULTIPLICATION
+
+# Matrix multiplication
+
+%%cu
+
+#include<iostream>
+using namespace std;
+
+__global__ void multiply(int *X, int *Y, int *Z, int size){
+
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(row<size && col<size){
+      int sum=0;
+      for(int i=0; i<size; i++){
+          sum += X[row*size + i]*Y[i*size + col];
+      }
+      Z[row*size+col];
+    }
+}
+
+void initialize(int *vector, int size){
+    for(int i=0; i<size*size; i++){
+        vector[i] = i+1;
+    }
+}
+
+void print(int *vector, int size){
+    for(int row=0; row<size; row++){
+        for(int col=0; col<size; col++){
+            cout<<vector[row*size + col]<<" ";
+        }
+        cout<<endl;
+    }
+    cout<<endl;
+}
+
+
+
+int main(){
+
+   int N = 2;
+   int matrixSize = N*N;
+   size_t matrixBytes = matrixSize * sizeof(int);
+
+   int * A,* B,* C;
+   A = new int[matrixSize];
+   B = new int[matrixSize];
+   C = new int[matrixSize];
+
+   initialize(A, N);
+   initialize(B, N);
+
+   int * X,* Y,* Z;
+   cudaMalloc(&X, matrixBytes);
+   cudaMalloc(&Y, matrixBytes);
+   cudaMalloc(&Z, matrixBytes);
+
+   cudaMemcpy(X, A, matrixBytes, cudaMemcpyHostToDevice);
+   cudaMemcpy(Y, B, matrixBytes, cudaMemcpyHostToDevice);
+
+   int THREADS = 2;
+   int BLOCKS = N / THREADS;
+
+   dim3 threads(THREADS, THREADS);
+   dim3 blocks(BLOCKS, BLOCKS);
+
+   multiply<<<blocks,threads>>>(X, Y, Z, N);
+
+   cudaMemcpy(C, Z, matrixBytes, cudaMemcpyDeviceToHost);
+   print(C, N);
+
+
+
+
+
+
+}
